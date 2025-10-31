@@ -1,23 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  margin: 0;
-  padding: 0;
-}
-
-#root {
-  min-height: 100vh;
-  width: 100%;
 }
 
 /* Scrollbar personalizada */
@@ -45,16 +32,4 @@ body {
 
 .dark ::-webkit-scrollbar-thumb:hover {
   background: #64748b;
-}
-
-/* Animações suaves para transições de tema */
-* {
-  transition-property: background-color, border-color, color;
-  transition-duration: 0.2s;
-  transition-timing-function: ease;
-}
-
-/* Remove transições de transform e scale para manter animações suaves */
-*:where([class*="scale-"], [class*="translate-"], [class*="rotate-"]) {
-  transition-property: transform, background-color, border-color, color;
 }
