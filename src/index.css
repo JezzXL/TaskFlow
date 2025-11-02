@@ -1,6 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
+/* Configuração do Dark Mode para Tailwind v4 */
+@theme {
+  --color-primary: #3b82f6;
+  --color-secondary: #64748b;
+  --color-light-bg: #f8fafc;
+  --color-dark-bg: #0f172a;
+  --color-dark-card: #1e293b;
+}
+
+/* Dark mode baseado em classe */
+@variant dark (.dark &);
+
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
