@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { motion } from 'framer-motion';
-import { GripVertical, Edit3, Trash2, Clock } from 'lucide-react';
-import type { Task } from '../../types';
+import { GripVertical, Edit3, Trash2, Calendar, AlertCircle } from 'lucide-react';
+import type { Task, Priority } from '../../types';
+import { PRIORITY_CONFIG } from '../../types';
 import { useStore } from '../../store/useStore';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
+import { formatDueDate, getDueDateStatus, formatDateForInput } from '../../utils/dateHelpers';
 
 interface TaskCardProps {
   task: Task;
@@ -17,6 +19,8 @@ export const TaskCard = ({ task }: TaskCardProps) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [editDescription, setEditDescription] = useState(task.description || '');
+  const [editPriority, setEditPriority] = useState<Priority>(task.priority);
+  const [editDueDate, setEditDueDate] = useState(formatDateForInput(task.dueDate));
 
   const {
     attributes,
@@ -37,6 +41,8 @@ export const TaskCard = ({ task }: TaskCardProps) => {
       updateTask(task.id, {
         title: editTitle.trim(),
         description: editDescription.trim() || undefined,
+        priority: editPriority,
+        dueDate: editDueDate ? new Date(editDueDate) : undefined,
       });
       setIsEditModalOpen(false);
     }
@@ -48,11 +54,8 @@ export const TaskCard = ({ task }: TaskCardProps) => {
     }
   };
 
-  // Formatar data
-  const formatDate = (date: Date) => {
-    const d = new Date(date);
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-  };
+  const dueDateStatus = getDueDateStatus(task.dueDate);
+  const priorityConfig = PRIORITY_CONFIG[task.priority];
 
   return (
     <>
@@ -62,8 +65,10 @@ export const TaskCard = ({ task }: TaskCardProps) => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
-        className={`bg-white dark:bg-gray-800 rounded-lg p-3.5 border border-gray-200 dark:border-gray-700 group hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md transition-all ${
+        className={`bg-white dark:bg-gray-800 rounded-lg p-3 border-2 group hover:shadow-md transition-all ${
           isDragging ? 'opacity-50 shadow-xl scale-105' : ''
+        } ${
+          task.priority !== 'none' ? priorityConfig.borderClass : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
         }`}
       >
         <div className="flex items-start gap-2">
@@ -83,17 +88,34 @@ export const TaskCard = ({ task }: TaskCardProps) => {
             </h4>
             
             {task.description && (
-              <p className="text-xs text-gray-600 dark:text-gray-400 break-words leading-relaxed mb-2 line-clamp-3">
+              <p className="text-xs text-gray-600 dark:text-gray-400 break-words leading-relaxed mb-2 line-clamp-2">
                 {task.description}
               </p>
             )}
 
             {/* Task Metadata */}
-            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-2">
-              <div className="flex items-center gap-1">
-                <Clock size={12} />
-                <span>{formatDate(task.createdAt)}</span>
-              </div>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {/* Prioridade */}
+              {task.priority !== 'none' && (
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${priorityConfig.bgClass} ${priorityConfig.textClass}`}>
+                  <span>{priorityConfig.icon}</span>
+                  <span>{priorityConfig.label}</span>
+                </span>
+              )}
+
+              {/* Data de Vencimento */}
+              {task.dueDate && (
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                  dueDateStatus === 'overdue' 
+                    ? 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400'
+                    : dueDateStatus === 'urgent'
+                    ? 'bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-400'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                }`}>
+                  <Calendar size={12} />
+                  <span>{formatDueDate(task.dueDate)}</span>
+                </span>
+              )}
             </div>
           </div>
 
@@ -124,10 +146,12 @@ export const TaskCard = ({ task }: TaskCardProps) => {
           setIsEditModalOpen(false);
           setEditTitle(task.title);
           setEditDescription(task.description || '');
+          setEditPriority(task.priority);
+          setEditDueDate(formatDateForInput(task.dueDate));
         }}
         title="Editar Tarefa"
       >
-        <div className="space-y-5">
+        <div className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Título da Tarefa *
@@ -150,20 +174,49 @@ export const TaskCard = ({ task }: TaskCardProps) => {
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
               placeholder="Adicione detalhes sobre a tarefa..."
-              rows={4}
+              rows={3}
               className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-slate-500 dark:focus:border-slate-400 outline-none resize-none text-sm"
             />
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 pb-2">
-            <Clock size={12} />
-            <span>Criada em {formatDate(task.createdAt)}</span>
-            {task.updatedAt && task.updatedAt !== task.createdAt && (
-              <>
-                <span>•</span>
-                <span>Atualizada em {formatDate(task.updatedAt)}</span>
-              </>
-            )}
+          {/* Prioridade */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+              <AlertCircle size={14} />
+              Prioridade
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {(Object.keys(PRIORITY_CONFIG) as Priority[]).map((priority) => (
+                <button
+                  key={priority}
+                  type="button"
+                  onClick={() => setEditPriority(priority)}
+                  className={`px-3 py-2 text-xs font-semibold rounded-lg transition-all ${
+                    editPriority === priority
+                      ? `${PRIORITY_CONFIG[priority].bgClass} ${PRIORITY_CONFIG[priority].textClass} ring-2 ring-offset-2 ${PRIORITY_CONFIG[priority].borderClass.replace('border', 'ring')}`
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <div className="text-base mb-0.5">{PRIORITY_CONFIG[priority].icon}</div>
+                  <div>{PRIORITY_CONFIG[priority].label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Data de Vencimento */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+              <Calendar size={14} />
+              Data de Vencimento
+            </label>
+            <input
+              type="date"
+              value={editDueDate}
+              onChange={(e) => setEditDueDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-slate-500 dark:focus:border-slate-400 outline-none text-sm"
+            />
           </div>
 
           <div className="flex gap-3 pt-2">
@@ -180,6 +233,8 @@ export const TaskCard = ({ task }: TaskCardProps) => {
                 setIsEditModalOpen(false);
                 setEditTitle(task.title);
                 setEditDescription(task.description || '');
+                setEditPriority(task.priority);
+                setEditDueDate(formatDateForInput(task.dueDate));
               }} 
               className="flex-1"
             >

@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Plus, GripVertical, MoreVertical } from 'lucide-react';
-import type { List } from '../../types';
+import { Plus, GripVertical, MoreVertical, Calendar, AlertCircle } from 'lucide-react';
+import type { List, Priority } from '../../types';
+import { PRIORITY_CONFIG } from '../../types';
 import { useStore } from '../../store/useStore';
 import { TaskCard } from '../tasks/TaskCard';
 
@@ -15,6 +16,8 @@ export const BoardList = ({ list }: BoardListProps) => {
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [newTaskPriority, setNewTaskPriority] = useState<Priority>('none');
+  const [newTaskDueDate, setNewTaskDueDate] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(list.title);
   const [showMenu, setShowMenu] = useState(false);
@@ -23,9 +26,12 @@ export const BoardList = ({ list }: BoardListProps) => {
 
   const handleAddTask = () => {
     if (newTaskTitle.trim()) {
-      addTask(list.id, newTaskTitle.trim(), newTaskDescription.trim());
+      const dueDate = newTaskDueDate ? new Date(newTaskDueDate) : undefined;
+      addTask(list.id, newTaskTitle.trim(), newTaskDescription.trim(), newTaskPriority, dueDate);
       setNewTaskTitle('');
       setNewTaskDescription('');
+      setNewTaskPriority('none');
+      setNewTaskDueDate('');
       setIsAddingTask(false);
     }
   };
@@ -144,7 +150,7 @@ export const BoardList = ({ list }: BoardListProps) => {
 
       {/* Add Task Section */}
       {isAddingTask ? (
-        <div className="space-y-2 border-t border-gray-200 dark:border-gray-800 pt-3">
+        <div className="space-y-3 border-t border-gray-200 dark:border-gray-800 pt-3">
           <input
             type="text"
             value={newTaskTitle}
@@ -152,18 +158,8 @@ export const BoardList = ({ list }: BoardListProps) => {
             placeholder="Título da tarefa..."
             className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-slate-500 dark:focus:border-slate-400"
             autoFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleAddTask();
-              }
-              if (e.key === 'Escape') {
-                setIsAddingTask(false);
-                setNewTaskTitle('');
-                setNewTaskDescription('');
-              }
-            }}
           />
+          
           <textarea
             value={newTaskDescription}
             onChange={(e) => setNewTaskDescription(e.target.value)}
@@ -171,7 +167,47 @@ export const BoardList = ({ list }: BoardListProps) => {
             rows={2}
             className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-slate-500 dark:focus:border-slate-400 resize-none"
           />
-          <div className="flex gap-2">
+
+          {/* Prioridade */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 flex items-center gap-1">
+              <AlertCircle size={12} />
+              Prioridade
+            </label>
+            <div className="grid grid-cols-4 gap-1">
+              {(Object.keys(PRIORITY_CONFIG) as Priority[]).map((priority) => (
+                <button
+                  key={priority}
+                  type="button"
+                  onClick={() => setNewTaskPriority(priority)}
+                  className={`px-2 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                    newTaskPriority === priority
+                      ? `${PRIORITY_CONFIG[priority].bgClass} ${PRIORITY_CONFIG[priority].textClass} ring-2 ring-offset-1 ${PRIORITY_CONFIG[priority].borderClass.replace('border', 'ring')}`
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {PRIORITY_CONFIG[priority].icon}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Data de Vencimento */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 flex items-center gap-1">
+              <Calendar size={12} />
+              Vencimento
+            </label>
+            <input
+              type="date"
+              value={newTaskDueDate}
+              onChange={(e) => setNewTaskDueDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-slate-500 dark:focus:border-slate-400"
+            />
+          </div>
+
+          <div className="flex gap-2 pt-1">
             <button
               onClick={handleAddTask}
               disabled={!newTaskTitle.trim()}
@@ -188,6 +224,8 @@ export const BoardList = ({ list }: BoardListProps) => {
                 setIsAddingTask(false);
                 setNewTaskTitle('');
                 setNewTaskDescription('');
+                setNewTaskPriority('none');
+                setNewTaskDueDate('');
               }}
               className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Board, List, Task, User, Theme } from '../types';
+import type { Board, List, Task, User, Theme, Priority } from '../types';
 import { generateId, saveToLocalStorage, loadFromLocalStorage } from '../utils/helpers';
 
 interface AppState {
@@ -21,8 +21,8 @@ interface AppState {
   updateList: (listId: string, title: string) => void;
   reorderLists: (boardId: string, lists: List[]) => void;
 
-  // Ações - Tasks
-  addTask: (listId: string, title: string, description?: string) => void;
+  // Ações - Tasks (ATUALIZADO)
+  addTask: (listId: string, title: string, description?: string, priority?: Priority, dueDate?: Date) => void;
   deleteTask: (taskId: string) => void;
   updateTask: (taskId: string, updates: Partial<Task>) => void;
   moveTask: (taskId: string, newListId: string, newOrder: number) => void;
@@ -133,8 +133,8 @@ export const useStore = create<AppState>((set, get) => ({
     get().saveData();
   },
 
-  // Tasks
-  addTask: (listId, title, description) => {
+  // Tasks (ATUALIZADO COM PRIORIDADE E DATA)
+  addTask: (listId, title, description, priority = 'none', dueDate) => {
     set((state) => ({
       boards: state.boards.map((board) => ({
         ...board,
@@ -146,6 +146,8 @@ export const useStore = create<AppState>((set, get) => ({
               description,
               listId,
               order: list.tasks.length,
+              priority,
+              dueDate,
               createdAt: new Date(),
               updatedAt: new Date(),
             };
@@ -248,8 +250,35 @@ export const useStore = create<AppState>((set, get) => ({
     const savedUser = loadFromLocalStorage<User>('taskflow-user');
     const savedTheme = loadFromLocalStorage<Theme>('taskflow-theme');
 
+    // Migração de dados antigos: adicionar prioridade e converter datas
+    const migratedBoards = savedBoards?.map(board => ({
+      ...board,
+      createdAt: new Date(board.createdAt),
+      updatedAt: new Date(board.updatedAt),
+      lists: board.lists.map(list => ({
+        ...list,
+        tasks: list.tasks.map(task => {
+          // Tipo para tasks antigas que podem não ter priority/dueDate
+          interface LegacyTask extends Omit<Task, 'priority' | 'dueDate'> {
+            priority?: Priority;
+            dueDate?: Date | string;
+          }
+          
+          const legacyTask = task as unknown as LegacyTask;
+          
+          return {
+            ...task,
+            priority: legacyTask.priority || 'none',
+            dueDate: legacyTask.dueDate ? new Date(legacyTask.dueDate) : undefined,
+            createdAt: new Date(task.createdAt),
+            updatedAt: new Date(task.updatedAt),
+          };
+        })
+      }))
+    }));
+
     set({
-      boards: savedBoards || [],
+      boards: migratedBoards || [],
       user: savedUser,
       theme: savedTheme || 'light',
     });
