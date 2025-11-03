@@ -311,16 +311,16 @@ Desenvolvido com 💜 por **Davyd Willian**
 ## 📸 Screenshots
 
 ### Login
-![Login](./screenshots/login.png)
+![Login](./screenshots/login.PNG)
 
 ### Dashboard
-![Dashboard](./screenshots/dashboard.png)
+![Dashboard](./screenshots/dashboard.PNG)
 
 ### Board
-![Board](./screenshots/board.png)
+![Board](./screenshots/board.PNG)
 
 ### Dark Mode
-![Dark Mode](./screenshots/dark-mode.png)
+![Dark Mode](./screenshots/dark-mode.PNG)
 
 ---
 
